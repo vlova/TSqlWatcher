@@ -1,0 +1,4 @@
+/TSqlWatcher/bin
+/TSqlWatcher/obj
+/TSqlWatcher/*.user
+/*.suo
