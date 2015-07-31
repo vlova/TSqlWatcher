@@ -6,3 +6,5 @@ Currently schemabound functions & views & update of custom type aren't supported
 Usage: 
 
     TSqlWatcher --path "D:\dev\myProject\schema\dbo\" --connectionString "Data Source=localhost\sqlexpress;Initial Catalog=MyProject;Integrated Security=True;Pooling=False;MultipleActiveResultSets=True
+    
+You can download tool here: https://github.com/vlova/TSqlWatcher/releases/
