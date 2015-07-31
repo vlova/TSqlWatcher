@@ -33,6 +33,11 @@ namespace TSqlWatcher
 
 		public void Handle(string path)
 		{
+			if (!File.Exists(path))
+			{
+				return; // TODO: add special handling to remove old code
+			}
+
 			var content = File.ReadAllText(path);
 			var fileType = GetFileType(content);
 			switch (fileType)
