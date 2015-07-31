@@ -2,6 +2,7 @@
 using System.Data.SqlClient;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace TSqlWatcher
 {
@@ -38,7 +39,12 @@ namespace TSqlWatcher
 				return; // TODO: add special handling to remove old code
 			}
 
-			var content = File.ReadAllText(path);
+			var content = GetContent(path);
+			if (content == null)
+			{
+				return;
+			}
+
 			var fileType = GetFileType(content);
 			switch (fileType)
 			{
@@ -57,6 +63,32 @@ namespace TSqlWatcher
 				default: 
 					break;
 			}
+		}
+
+		private static string GetContent(string path)
+		{
+			var tries = 5;
+			while (tries > 0)
+			{
+				try
+				{
+					return File.ReadAllText(path);
+				}
+				catch (FileNotFoundException ex)
+				{
+					Log(ex);
+					return null;
+				}
+				catch (IOException ex)
+				{
+					Thread.Sleep(100);
+					Log(ex);
+				}
+
+				tries--;
+			}
+
+			return null;
 		}
 
 
