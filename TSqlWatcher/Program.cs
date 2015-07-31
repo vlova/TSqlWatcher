@@ -22,21 +22,19 @@ namespace TSqlWatcher
 
 
 			var handler = new SqlChangeHandler(settings);
+			handler.Prepare();
 
 			CreateWatcher(settings,
 				(sender, e) =>
 				{
 					if (e.ChangeType.HasFlag(WatcherChangeTypes.Changed))
 					{
-						handler.Handle(e.FullPath);
+						handler.Handle(oldPath: null, newPath: e.FullPath);
 					}
 				},
 				(sender, e) =>
 				{
-					if (e.ChangeType.HasFlag(WatcherChangeTypes.Changed))
-					{
-						handler.Handle(e.FullPath);
-					}
+					handler.Handle(oldPath: e.OldFullPath, newPath: e.FullPath);
 				});
 
 			Console.ReadKey();
@@ -56,14 +54,9 @@ namespace TSqlWatcher
 
 			watcher.IncludeSubdirectories = true;
 			watcher.NotifyFilter =
-				NotifyFilters.Attributes
-				| NotifyFilters.CreationTime
-				| NotifyFilters.DirectoryName
+				NotifyFilters.DirectoryName
 				| NotifyFilters.FileName
-				| NotifyFilters.LastAccess
-				| NotifyFilters.LastWrite
-				| NotifyFilters.Security
-				| NotifyFilters.Size;
+				| NotifyFilters.LastWrite;
 
 			watcher.Filter = "*.sql";
 			watcher.Changed += handler;

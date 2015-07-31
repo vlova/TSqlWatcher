@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 
@@ -8,14 +10,6 @@ namespace TSqlWatcher
 {
 	internal class SqlChangeHandler
 	{
-		enum FileType
-		{
-			Unknown,
-			Function,
-			Procedure,
-			View
-		}
-
 		private static RegexOptions regexOptions = RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase;
 
 		private static Regex functionRegex
@@ -26,42 +20,128 @@ namespace TSqlWatcher
 			= new Regex(@"create\s+view\s+(?:\[{0,1}dbo\]{0,1}\.){0,1}\[{0,1}(.*)\]{0,1}", regexOptions);
 
 		private readonly Settings settings;
+		// file path -> (file type, entity name) 
+		private Dictionary<string, SqlEntity> fileToEntityMapping;
+
+		private object locker = new object();
+		private SqlConnection connection;
+		private SqlTransaction transaction;
 
 		public SqlChangeHandler(Settings settings)
 		{
 			this.settings = settings;
 		}
 
-		public void Handle(string path)
+		public void Prepare()
 		{
+			fileToEntityMapping = Directory
+				.EnumerateFiles(settings.Path, "*.sql", SearchOption.AllDirectories)
+				.Select(path => new { path, content = GetContent(path) })
+				.Select(e => new SqlEntity
+				{
+					Path = e.path,
+					Type = GetEntityType(e.content),
+					Name = GetEntityName(e.content)
+				})
+				.Where(e => e.Type != SqlEntityType.Unknown)
+				.ToDictionary(e => e.Path, e => e);
+		}
+
+		public void Handle(string oldPath, string newPath)
+		{
+			lock (locker)
+			{
+				try
+				{
+					using (connection = new SqlConnection(settings.ConnectionString))
+					{
+						connection.Open();
+						using (transaction = connection.BeginTransaction())
+						{
+							HandleInternal(oldPath, newPath);
+						}
+
+						if (transaction.Connection != null)
+						{
+							transaction.Commit();
+						}
+
+						if (connection.State == System.Data.ConnectionState.Open)
+						{
+							connection.Close();
+						}
+					}
+				}
+				catch (Exception ex)
+				{
+					Log(ex);
+				}
+			}
+		}
+
+		public void HandleInternal(string oldPath, string path)
+		{
+			if (oldPath != null)
+			{
+				DropEntityByPath(oldPath);
+			}
+
 			if (!File.Exists(path))
 			{
-				return; // TODO: add special handling to remove old code
+				return;
 			}
 
 			var content = GetContent(path);
 			if (content == null)
 			{
+				Log("failed to get content for file {0}", path);
 				return;
 			}
 
-			var fileType = GetFileType(content);
-			switch (fileType)
+			var entity = new SqlEntity
 			{
-				case FileType.Function: 
-					RecreateEntity(content, functionRegex, "function"); break;
-				
+
+				Path = path,
+				Content = content,
+				Name = GetEntityName(content),
+				Type = GetEntityType(content)
+			};
+
+			switch (entity.Type)
+			{
+				case SqlEntityType.Function:
+					RecreateEntity(entity);
+					break;
+
 				// TODO: add special handling if view is schema bound
-				case FileType.View:
-					RecreateEntity(content, functionRegex, "view");
+				case SqlEntityType.View:
+					RecreateEntity(entity);
 					break;
-				
-				case FileType.Procedure:
-					RecreateEntity(content, storedProcedureRegex, "procedure"); 
+
+				case SqlEntityType.Procedure:
+					RecreateEntity(entity);
 					break;
-				
-				default: 
+
+				default:
 					break;
+			}
+		}
+
+		private void DropEntityByPath(string path)
+		{
+			if (fileToEntityMapping.ContainsKey(path))
+			{
+				var entity = fileToEntityMapping[path];
+				try
+				{
+					DropEntity(entity.Name, kind: entity.Type.ToString().ToLower());
+					Log("dropped {0} {1}", entity.Type.ToString().ToLower(), entity.Name);
+					fileToEntityMapping.Remove(path);
+				}
+				catch (Exception ex)
+				{
+					Log(ex);
+				}
 			}
 		}
 
@@ -92,41 +172,41 @@ namespace TSqlWatcher
 		}
 
 
-		private void RecreateEntity(string content, Regex regex, string kind)
+		private void RecreateEntity(SqlEntity entity)
 		{
-			var match = regex.Match(content);
-			var name = match.Groups[1].Value;
 			try
 			{
-				using (var connection = new SqlConnection(settings.ConnectionString))
-				{
-					connection.Open();
-					using (var transaction = connection.BeginTransaction())
-					{
-						DropEntity(kind, name, transaction);
-						CreateEntity(content, transaction);
-
-						if (transaction.Connection != null)
-						{
-							transaction.Commit();
-						}
-					}
-
-					if (connection.State == System.Data.ConnectionState.Open)
-					{
-						connection.Close();
-					}
-				}
+				DropEntity(entity);
+				CreateEntity(entity);
 			}
 			catch (Exception ex)
 			{
 				Log(ex);
 			}
 
-			Console.WriteLine("{0} | updated {1} {2}", DateTime.Now.TimeOfDay, kind, name);
+			Log("updated {0} {1}", entity.Type, entity.Name);
 		}
 
-		private void DropEntity(string kind, string name, SqlTransaction transaction)
+		private void DropEntity(SqlEntity entity)
+		{
+			var oldName = entity.Name;
+			if (fileToEntityMapping.ContainsKey(entity.Path))
+			{
+				oldName = fileToEntityMapping[entity.Path].Name;
+			}
+
+			DropEntity(oldName, kind: entity.Type.ToString().ToLower());
+			DropEntity(entity.Name, kind: entity.Type.ToString().ToLower());
+
+
+			if (entity.Name != oldName)
+			{
+				Log("dropped {0} {1}", entity.Type.ToString().ToLower(), oldName);
+				fileToEntityMapping.Remove(entity.Path);
+			}
+		}
+
+		private void DropEntity(string name, string kind)
 		{
 			try
 			{
@@ -150,16 +230,19 @@ namespace TSqlWatcher
 			}
 		}
 
-		private void CreateEntity(string content, SqlTransaction transaction)
+		private void CreateEntity(SqlEntity entity)
 		{
 			try
 			{
 				using (var command = transaction.Connection.CreateCommand())
 				{
-					command.CommandText = content;
+					command.CommandText = entity.Content;
 					command.Transaction = transaction;
 					command.ExecuteNonQuery();
 				}
+
+				entity.Content = null;
+				fileToEntityMapping[entity.Path] = entity;
 			}
 			catch (Exception ex)
 			{
@@ -170,15 +253,46 @@ namespace TSqlWatcher
 
 		private static void Log(Exception ex)
 		{
-			Console.WriteLine("{0} | exception of type {1} happened. Message: {2}", DateTime.Now.TimeOfDay, ex.GetType().Name, ex.Message);
+			Log("exception of type {0} happened. Message: {1}", ex.GetType().Name, ex.Message);
 		}
 
-		private FileType GetFileType(string content)
+		private static void Log(string message, params object[] args)
 		{
-			if (functionRegex.IsMatch(content)) return FileType.Function;
-			if (storedProcedureRegex.IsMatch(content)) return FileType.Procedure;
-			if (viewRegex.IsMatch(content)) return FileType.View;
-			return FileType.Unknown;
+			var originalColor = Console.ForegroundColor;
+			Console.ForegroundColor = ConsoleColor.DarkGreen;
+			Console.Write(DateTime.Now.TimeOfDay);
+			Console.ForegroundColor = ConsoleColor.Gray;
+			Console.Write(" | ");
+			Console.ForegroundColor = originalColor;
+			Console.WriteLine(message, args);
+		}
+
+		private SqlEntityType GetEntityType(string content)
+		{
+			if (functionRegex.IsMatch(content)) return SqlEntityType.Function;
+			if (storedProcedureRegex.IsMatch(content)) return SqlEntityType.Procedure;
+			if (viewRegex.IsMatch(content)) return SqlEntityType.View;
+			return SqlEntityType.Unknown;
+		}
+
+		private string GetEntityName(string content)
+		{
+			return GetEntityName(functionRegex, content)
+				?? GetEntityName(viewRegex, content)
+				?? GetEntityName(storedProcedureRegex, content);
+		}
+
+		private string GetEntityName(Regex regex, string content)
+		{
+			var match = regex.Match(content);
+			if (match.Success)
+			{
+				return match.Groups[1].Value;
+			}
+			else
+			{
+				return null;
+			}
 		}
 	}
 }
