@@ -69,6 +69,7 @@ namespace TSqlWatcher
 					Logger.Log(ex);
 				}
 
+				Console.WriteLine(); Console.WriteLine();
 			}
 		}
 
@@ -100,7 +101,7 @@ namespace TSqlWatcher
 				else
 				{
 					var entity = SqlEntity.Create(path, content);
-					if (oldEntity.Name != entity.Name)
+					if (oldEntity.Maybe(e => e.Name) != entity.Name)
 					{
 						actions.Add(new DropCommand(entity));
 					}
@@ -122,13 +123,21 @@ namespace TSqlWatcher
 
 			actions.AddRange(reversedDependants.Select(e => new CreateCommand(e)));
 
-			foreach (var action in actions.Where(_ => transaction.Connection != null))
+			while (transaction.Connection != null && actions.Any())
 			{
-				action.Perform(transaction, project);
+				foreach (var action in actions.ToList())
+				{
+					if (transaction.Connection == null)
+					{
+						break;
+					}
+
+					action.Perform(transaction, project, actions.Add);
+					actions.Remove(action);
+				}
 			}
 
 			Logger.Log("finished handling update of file {0} for {1}", path.Substring(settings.Path.Length), watch.Elapsed);
-			Console.WriteLine(); Console.WriteLine();
 		}
 	}
 }

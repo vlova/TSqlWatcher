@@ -1,7 +1,7 @@
 using System;
-using System.Linq;
-using System.Data.SqlClient;
 using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.Linq;
 
 namespace TSqlWatcher
 {
@@ -14,7 +14,7 @@ namespace TSqlWatcher
 			Entity = entity;
 		}
 
-		public void Perform(SqlTransaction transaction, SqlProjectInfo project)
+		public void Perform(SqlTransaction transaction, SqlProjectInfo project, CommandAdder commandAdder)
 		{
 			var criticalError = false;
 			try
@@ -38,7 +38,8 @@ namespace TSqlWatcher
 			{
 				if (!criticalError)
 				{
-					UpdateProjectInfo(project);
+					// command to update memory data must be performed only after sql commands
+					commandAdder(new LambdaCommand((_, proj, _a) => UpdateProjectInfo(proj)));
 				}
 			}
 		}

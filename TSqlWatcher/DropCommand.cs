@@ -4,51 +4,52 @@ using System.Linq;
 
 namespace TSqlWatcher
 {
-    class DropCommand : ICommand
-    {
-    	public SqlEntity Entity { get; private set; }
+	class DropCommand : ICommand
+	{
+		public SqlEntity Entity { get; private set; }
 
 		public DropCommand(SqlEntity entity)
 		{
 			this.Entity = entity;
-		} 
-    
-    	public void Perform(SqlTransaction transaction, SqlProjectInfo project)
-    	{
+		}
+
+		public void Perform(SqlTransaction transaction, SqlProjectInfo project, CommandAdder commandAdder)
+		{
 			var criticalError = false;
-    		try
-    		{
-    			using (var command = transaction.Connection.CreateCommand())
-    			{
-    				command.CommandText = "drop " + Entity.Type.ToString().ToLower() + " dbo." + Entity.Name;
-    				command.Transaction = transaction;
-    				command.ExecuteNonQuery();
-    			}
-    
-    			Logger.Log("dropped {0}", Entity);
-				
-				
-    		}
-    		catch (Exception ex)
-    		{
-    			if (ex.Message.Contains(" it does not exist "))
-    			{
-    				// ignore
-    			}
-    			else
-    			{
+			try
+			{
+				using (var command = transaction.Connection.CreateCommand())
+				{
+					command.CommandText = "drop " + Entity.Type.ToString().ToLower() + " dbo." + Entity.Name;
+					command.Transaction = transaction;
+					command.ExecuteNonQuery();
+				}
+
+				Logger.Log("dropped {0}", Entity);
+
+
+			}
+			catch (Exception ex)
+			{
+				if (ex.Message.Contains(" it does not exist "))
+				{
+					// ignore
+				}
+				else
+				{
 					criticalError = true;
-    				Logger.Log(ex);
-    			}
+					Logger.Log(ex);
+				}
 			}
 			finally
 			{
 				if (!criticalError)
 				{
-					UpdateProjectInfo(project);
+					// command to update memory data must be performed only after sql commands
+					commandAdder(new LambdaCommand((_, proj, _1) => UpdateProjectInfo(proj)));
 				}
 			}
-    	}
+		}
 
 		private void UpdateProjectInfo(SqlProjectInfo project)
 		{
@@ -75,6 +76,6 @@ namespace TSqlWatcher
 				}
 			}
 		}
-    
-    }
+
+	}
 }
