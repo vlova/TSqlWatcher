@@ -41,6 +41,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CreateCommand.cs" />
+    <Compile Include="DropCommand.cs" />
+    <Compile Include="EntityAction.cs" />
+    <Compile Include="Log.cs" />
     <Compile Include="SqlEntity.cs" />
     <Compile Include="SqlEntityType.cs" />
     <Compile Include="LangExtensions.cs" />
@@ -48,6 +52,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="SqlChangeHandler.cs" />
+    <Compile Include="SqlProjectInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

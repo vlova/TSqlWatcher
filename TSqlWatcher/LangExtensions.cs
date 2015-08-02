@@ -44,6 +44,9 @@ namespace TSqlWatcher
 
 		public static T TryGet<K, T>(this IDictionary<K, T> dictionary, K key, T defaultValue = default(T))
 		{
+			if (key == null)
+				return defaultValue;
+
 			if (dictionary.ContainsKey(key))
 			{
 				return dictionary[key];
@@ -54,12 +57,76 @@ namespace TSqlWatcher
 
 		public static T? TryGetNullable<K, T>(this IDictionary<K, T> dictionary, K key) where T : struct
 		{
+			if (key == null)
+				return null;
+
 			if (dictionary.ContainsKey(key))
 			{
 				return dictionary[key];
 			}
 
 			return null;
+		}
+
+		/// <summary>
+		/// Syntaxic sugar similar to C#6 null-proganation operator.
+		/// </summary>
+		public static TResult Maybe<TArg, TResult>(this TArg obj, Func<TArg, TResult> func, TResult defaultValue = default(TResult)) where TArg : class
+		{
+			if (obj == null)
+			{
+				return defaultValue;
+			}
+			else
+			{
+				return func(obj);
+			}
+		}
+
+		/// <summary>
+		/// Syntaxic sugar similar to C#6 null-proganation operator.
+		/// </summary>
+		public static TResult Maybe<TArg, TResult>(this TArg? obj, Func<TArg?, TResult> func, TResult defaultValue = default(TResult)) where TArg : struct
+		{
+			if (obj == null)
+			{
+				return defaultValue;
+			}
+
+			return func(obj);
+		}
+
+		/// <summary>
+		/// Syntaxic sugar similar to C#6 null-proganation operator.
+		/// </summary>
+		public static void MaybeDo<TArg>(this TArg? obj, Action<TArg> func) where TArg : struct
+		{
+			if (obj == null)
+			{
+				return;
+			}
+
+			func(obj.Value);
+		}
+
+		public static IEnumerable<T> EmptyIfNull<T>(this IEnumerable<T> list)
+		{
+			return (list == null)
+				? Enumerable.Empty<T>()
+				: list;
+		}
+
+		public static IEnumerable<T> DistinctSameOrder<T>(this IEnumerable<T> collection)
+		{
+			var hash = new HashSet<T>();
+			foreach (var item in collection)
+			{
+				if (!hash.Contains(item))
+				{
+					hash.Add(item);
+					yield return item;
+				} 
+			}
 		}
 	}
 }

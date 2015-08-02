@@ -6,6 +6,6 @@ namespace TSqlWatcher
     	Function,
     	Procedure,
     	View,
-		CustomType
+		Type
     }
 }

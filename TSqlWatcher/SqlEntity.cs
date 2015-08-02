@@ -16,7 +16,7 @@ namespace TSqlWatcher
 
 		public override string ToString()
 		{
-			return Type + " " + Name;
+			return Type.ToString().ToLower() + " " + Name;
 		}
 
 		private static Regex functionRegex = GetEntityRegex("function");
@@ -32,13 +32,14 @@ namespace TSqlWatcher
 
 		public static SqlEntity Create(string path, string content)
 		{
-			var type = GetEntityType(content);
+			var type = content.Maybe(GetEntityType, SqlEntityType.Unknown);
 			return new SqlEntity
 			{
 				Path = path,
 				Type = type,
-				Name = GetEntityName(content),
-				IsSchemaBound = content.ContainsInsensetive("schemabinding") || type == SqlEntityType.CustomType,
+				Name = content.Maybe(GetEntityName),
+				IsSchemaBound = content.Maybe(c => c.ContainsInsensetive("schemabinding"), defaultValue: false)
+					|| type == SqlEntityType.Type,
 				Content = content
 			};
 
@@ -70,7 +71,7 @@ namespace TSqlWatcher
 			if (functionRegex.IsMatch(content)) return SqlEntityType.Function;
 			if (storedProcedureRegex.IsMatch(content)) return SqlEntityType.Procedure;
 			if (viewRegex.IsMatch(content)) return SqlEntityType.View;
-			if (customTypeRegex.IsMatch(content)) return SqlEntityType.CustomType;
+			if (customTypeRegex.IsMatch(content)) return SqlEntityType.Type;
 			return SqlEntityType.Unknown;
 		}
 	}
