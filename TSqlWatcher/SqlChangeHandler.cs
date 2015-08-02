@@ -30,6 +30,8 @@ namespace TSqlWatcher
 			project = SqlProjectInfo.Create(settings);
 
 			Logger.Log("finished analyzing project for {0}", watch.Elapsed);
+			Console.WriteLine();
+			Console.WriteLine();
 		}
 
 		public void Handle(string oldPath, string newPath)
@@ -66,11 +68,15 @@ namespace TSqlWatcher
 				{
 					Logger.Log(ex);
 				}
+
 			}
 		}
 
 		public void HandleInternal(string oldPath, string path)
 		{
+			var watch = Stopwatch.StartNew();
+			Logger.Log("started handling update of file {0}", path.Substring(settings.Path.Length));
+
 			var actions = new List<ICommand>();
 
 			var dependants = project.GetDependantsByPath(oldPath ?? path);
@@ -120,6 +126,9 @@ namespace TSqlWatcher
 			{
 				action.Perform(transaction, project);
 			}
+
+			Logger.Log("finished handling update of file {0} for {1}", path.Substring(settings.Path.Length), watch.Elapsed);
+			Console.WriteLine(); Console.WriteLine();
 		}
 	}
 }

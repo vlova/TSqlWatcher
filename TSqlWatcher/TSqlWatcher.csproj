@@ -43,8 +43,8 @@
   <ItemGroup>
     <Compile Include="CreateCommand.cs" />
     <Compile Include="DropCommand.cs" />
-    <Compile Include="EntityAction.cs" />
-    <Compile Include="Log.cs" />
+    <Compile Include="ICommand.cs" />
+    <Compile Include="Logger.cs" />
     <Compile Include="SqlEntity.cs" />
     <Compile Include="SqlEntityType.cs" />
     <Compile Include="LangExtensions.cs" />

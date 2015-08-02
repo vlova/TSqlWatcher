@@ -19,6 +19,23 @@ namespace TSqlWatcher
 			return Type.ToString().ToLower() + " " + Name;
 		}
 
+		public override bool Equals(object obj)
+		{
+			var another = obj as SqlEntity;
+			if (another != null)
+			{
+				return this.Path == another.Path
+					|| this.Name == another.Name; 
+			}
+
+			return false;
+		}
+
+		public override int GetHashCode()
+		{
+			return Name.GetHashCode() | Path.GetHashCode();
+		}
+
 		private static Regex functionRegex = GetEntityRegex("function");
 		private static Regex storedProcedureRegex = GetEntityRegex("procedure");
 		private static Regex viewRegex = GetEntityRegex("view");
