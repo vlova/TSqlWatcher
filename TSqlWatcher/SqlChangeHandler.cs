@@ -1,27 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace TSqlWatcher
 {
 	internal class SqlChangeHandler
 	{
-		private static RegexOptions regexOptions = RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase;
-
-		private static Regex functionRegex
-			= new Regex(@"create\s+function\s+(?:\[{0,1}dbo\]{0,1}\.){0,1}\[{0,1}(.*)\]{0,1}", regexOptions);
-		private static Regex storedProcedureRegex
-			= new Regex(@"create\s+procedure\s+(?:\[{0,1}dbo\]{0,1}\.){0,1}\[{0,1}(.*)\]{0,1}", regexOptions);
-		private static Regex viewRegex
-			= new Regex(@"create\s+view\s+(?:\[{0,1}dbo\]{0,1}\.){0,1}\[{0,1}(.*)\]{0,1}", regexOptions);
-
 		private readonly Settings settings;
-		// file path -> (file type, entity name) 
+		/// <summary>
+		/// file path -> (file type, entity name) 
+		/// </summary>
 		private Dictionary<string, SqlEntity> fileToEntityMapping;
+
+		/// <summary>
+		/// entity name -> list[dependent entities]
+		/// </summary>
+		private Dictionary<string, List<SqlEntity>> dependentEntities;
 
 		private object locker = new object();
 		private SqlConnection connection;
@@ -34,17 +32,49 @@ namespace TSqlWatcher
 
 		public void Prepare()
 		{
-			fileToEntityMapping = Directory
+			Log("started analyzing project");
+
+			var watch = Stopwatch.StartNew(); 
+			fileToEntityMapping = GetFileToEntityMapping();
+			dependentEntities = GetDependentEntities();
+			CleanupMemory();
+
+			Log("finished analyzing project for {0}", watch.Elapsed);
+		}
+
+		private Dictionary<string, SqlEntity> GetFileToEntityMapping()
+		{
+			return Directory
 				.EnumerateFiles(settings.Path, "*.sql", SearchOption.AllDirectories)
 				.Select(path => new { path, content = GetContent(path) })
-				.Select(e => new SqlEntity
-				{
-					Path = e.path,
-					Type = GetEntityType(e.content),
-					Name = GetEntityName(e.content)
-				})
+				.Select(e => SqlEntity.Create(e.path, e.content))
 				.Where(e => e.Type != SqlEntityType.Unknown)
 				.ToDictionary(e => e.Path, e => e);
+		}
+
+		private Dictionary<string, List<SqlEntity>> GetDependentEntities()
+		{
+			var entityNames = fileToEntityMapping.Where(p => p.Value.IsSchemaBound).Select(p => p.Value.Name).ToList();
+
+			return entityNames
+				.Select(name => new { 
+					name, 
+					dependent = fileToEntityMapping
+						.Select(_ => _.Value)
+						.Where(e => e.Name != name)
+						.Where(e => e.Content.ContainsInsensetive(name))
+						.ToList()
+				})
+				.Where(d => d.dependent.Any())
+				.ToDictionary(d => d.name, d => d.dependent);
+		}
+
+		private void CleanupMemory()
+		{
+			foreach (var entity in fileToEntityMapping.Select(e => e.Value))
+			{
+				entity.Content = null; // cleanup memory
+			}
 		}
 
 		public void Handle(string oldPath, string newPath)
@@ -98,14 +128,7 @@ namespace TSqlWatcher
 				return;
 			}
 
-			var entity = new SqlEntity
-			{
-
-				Path = path,
-				Content = content,
-				Name = GetEntityName(content),
-				Type = GetEntityType(content)
-			};
+			var entity = SqlEntity.Create(path, content);
 
 			switch (entity.Type)
 			{
@@ -265,34 +288,6 @@ namespace TSqlWatcher
 			Console.Write(" | ");
 			Console.ForegroundColor = originalColor;
 			Console.WriteLine(message, args);
-		}
-
-		private SqlEntityType GetEntityType(string content)
-		{
-			if (functionRegex.IsMatch(content)) return SqlEntityType.Function;
-			if (storedProcedureRegex.IsMatch(content)) return SqlEntityType.Procedure;
-			if (viewRegex.IsMatch(content)) return SqlEntityType.View;
-			return SqlEntityType.Unknown;
-		}
-
-		private string GetEntityName(string content)
-		{
-			return GetEntityName(functionRegex, content)
-				?? GetEntityName(viewRegex, content)
-				?? GetEntityName(storedProcedureRegex, content);
-		}
-
-		private string GetEntityName(Regex regex, string content)
-		{
-			var match = regex.Match(content);
-			if (match.Success)
-			{
-				return match.Groups[1].Value;
-			}
-			else
-			{
-				return null;
-			}
 		}
 	}
 }
