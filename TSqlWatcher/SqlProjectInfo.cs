@@ -15,14 +15,6 @@ namespace TSqlWatcher
 		/// </summary>
 		public Dictionary<string, SqlEntity> FileToEntityMapping { get; set; }
 
-		public IEnumerable<SqlEntity> SchemaBoundEntities
-		{
-			get
-			{
-				return FileToEntityMapping.Values.Where(e => e.IsSchemaBound);
-			}
-		}
-
 		/// <summary>
 		/// entity name -> list[dependent entities]
 		/// </summary>
@@ -48,7 +40,7 @@ namespace TSqlWatcher
 
 		private static Dictionary<string, List<SqlEntity>> GetDependentEntities(Dictionary<string, SqlEntity> fileToEntityMapping)
 		{
-			var entityNames = fileToEntityMapping.Where(p => p.Value.IsSchemaBound).Select(p => p.Value.Name).ToList();
+			var entityNames = fileToEntityMapping.Select(p => p.Value.Name).ToList();
 
 			return entityNames
 				.Select(name => new

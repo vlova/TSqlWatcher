@@ -48,7 +48,7 @@ namespace TSqlWatcher
 		{
 			project.FileToEntityMapping[Entity.Path] = Entity;
 
-			foreach (var entityName in project.SchemaBoundEntities.Select(e => e.Name))
+			foreach (var entityName in project.FileToEntityMapping.Values.Select(e => e.Name))
 			{
 				if (Entity.Content.Contains(entityName) && Entity.Name != entityName)
 				{
