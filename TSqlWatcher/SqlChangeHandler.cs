@@ -100,7 +100,7 @@ namespace TSqlWatcher
 				}
 				else
 				{
-					if (oldEntity.Content == content)
+					if (oldEntity.Maybe(_ => _.Content) == content)
 					{
 						Logger.Log("fake update of {0}", path);
 						return; // short circuit return to prevent fake updates
