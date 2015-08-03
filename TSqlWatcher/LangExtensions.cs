@@ -32,9 +32,13 @@ namespace TSqlWatcher
 		private static CultureInfo enCulture = new CultureInfo("en-US");
 		private const int NotFound = -1;
 
-		public static bool ContainsInsensetive(this string @in, string what)
+		public static bool ContainsCall(this string @in, string what)
 		{
-			return enCulture.CompareInfo.IndexOf(@in, what, CompareOptions.IgnoreCase) != NotFound;
+			return enCulture.CompareInfo.IndexOf(@in, what.Trim() + " ", CompareOptions.IgnoreCase) != NotFound
+				|| enCulture.CompareInfo.IndexOf(@in, what.Trim() + "\r", CompareOptions.IgnoreCase) != NotFound
+				|| enCulture.CompareInfo.IndexOf(@in, what.Trim() + "\n", CompareOptions.IgnoreCase) != NotFound
+				|| enCulture.CompareInfo.IndexOf(@in, what.Trim() + "\t", CompareOptions.IgnoreCase) != NotFound
+				|| enCulture.CompareInfo.IndexOf(@in, what.Trim() + "]", CompareOptions.IgnoreCase) != NotFound;
 		}
 
 		public static void ForEach<T>(this IEnumerable<T> collection, Action<T> action)

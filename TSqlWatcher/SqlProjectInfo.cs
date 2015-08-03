@@ -49,7 +49,7 @@ namespace TSqlWatcher
 					dependent = fileToEntityMapping
 						.Select(_ => _.Value)
 						.Where(e => e.Name != name)
-						.Where(e => e.Content.ContainsInsensetive(name))
+						.Where(e => e.Content.ContainsCall(name))
 						.ToList()
 				})
 				.Where(d => d.dependent.Any())

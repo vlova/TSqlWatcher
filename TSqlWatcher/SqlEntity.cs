@@ -55,7 +55,7 @@ namespace TSqlWatcher
 				Path = path,
 				Type = type,
 				Name = content.Maybe(GetEntityName),
-				IsSchemaBound = content.Maybe(c => c.ContainsInsensetive("schemabinding"), defaultValue: false)
+				IsSchemaBound = content.Maybe(c => c.ContainsCall("schemabinding"), defaultValue: false)
 					|| type == SqlEntityType.Type,
 				Content = content
 			};

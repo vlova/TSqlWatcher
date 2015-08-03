@@ -100,6 +100,12 @@ namespace TSqlWatcher
 				}
 				else
 				{
+					if (oldEntity.Content == content)
+					{
+						Logger.Log("fake update of {0}", path);
+						return; // short circuit return to prevent fake updates
+					}
+
 					var entity = SqlEntity.Create(path, content);
 					if (oldEntity.Maybe(e => e.Name) != entity.Name)
 					{
