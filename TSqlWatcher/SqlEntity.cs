@@ -37,13 +37,13 @@ namespace TSqlWatcher
 		}
 
 		private static Regex functionRegex = GetEntityRegex("function");
-		private static Regex storedProcedureRegex = GetEntityRegex("procedure");
+		private static Regex storedProcedureRegex = GetEntityRegex(@"(?:procedure|proc)");
 		private static Regex viewRegex = GetEntityRegex("view");
 		private static Regex customTypeRegex = GetEntityRegex("type");
 
-		private static Regex GetEntityRegex(string entityType)
+		private static Regex GetEntityRegex(string type)
 		{
-			return new Regex(@"create\s+" + entityType + @"\s+(?:\[{0,1}dbo\]{0,1}\.){0,1}\[{0,1}((?:\w|\d|-)*)\]{0,1}",
+			return new Regex(@"create\s+" + type + @"\s+(?:\[{0,1}dbo\]{0,1}\.){0,1}\[{0,1}((?:\w|\d|-)*)\]{0,1}",
 				RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
 		}
 
