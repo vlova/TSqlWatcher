@@ -1,14 +1,33 @@
+using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 namespace TSqlWatcher
 {
 	class SqlEntity
 	{
+		private string _content;
+
+		public HashSet<string> Words { get; set; }
+
 		public SqlEntityType Type { get; set; }
 
 		public string Name { get; set; }
 
-		public string Content { get; set; }
+		public string Content
+		{
+			get
+			{
+				return _content;
+			}
+			set
+			{
+				_content = value;
+				Words = new HashSet<string>(
+					Content.Split('[', ']', '\r', '\n', '\t', ' ', '.'), 
+					StringComparer.InvariantCultureIgnoreCase);
+			}
+		}
 
 		public string Path { get; set; }
 
@@ -55,7 +74,7 @@ namespace TSqlWatcher
 				Path = path,
 				Type = type,
 				Name = content.Maybe(GetEntityName),
-				IsSchemaBound = content.Maybe(c => c.ContainsCall("schemabinding"), defaultValue: false)
+				IsSchemaBound = content.Maybe(c => c.ContainsSql("schemabinding"), defaultValue: false)
 					|| type == SqlEntityType.Type,
 				Content = content
 			};

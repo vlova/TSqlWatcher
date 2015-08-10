@@ -32,7 +32,7 @@ namespace TSqlWatcher
 		private static CultureInfo enCulture = new CultureInfo("en-US");
 		private const int NotFound = -1;
 
-		public static bool ContainsCall(this string @in, string what)
+		public static bool ContainsSql(this string @in, string what)
 		{
 			return enCulture.CompareInfo.IndexOf(@in, what.Trim() + " ", CompareOptions.IgnoreCase) != NotFound
 				|| enCulture.CompareInfo.IndexOf(@in, what.Trim() + "\r", CompareOptions.IgnoreCase) != NotFound
