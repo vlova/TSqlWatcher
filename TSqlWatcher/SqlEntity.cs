@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -66,19 +67,30 @@ namespace TSqlWatcher
 				RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
 		}
 
-		public static SqlEntity Create(string path, string content)
+		public static SqlEntity Create(string path, string content, Settings settings)
 		{
 			var type = content.Maybe(GetEntityType, SqlEntityType.Unknown);
-			return new SqlEntity
+			var entity = new SqlEntity
 			{
 				Path = path,
 				Type = type,
 				Name = content.Maybe(GetEntityName),
 				IsSchemaBound = content.Maybe(c => c.ContainsSql("schemabinding"), defaultValue: false)
 					|| type == SqlEntityType.Type,
-				Content = content
+				Content = ReplaceVariables(content, settings)
 			};
 
+			return entity;
+		}
+
+		private static string ReplaceVariables(string content, Settings settings)
+		{
+			return settings.UserVariables.Aggregate(
+				content, 
+				(current, variable) => current
+					.Replace(
+						string.Format("$({0})", variable.Key),
+						variable.Value));
 		}
 
 		private static string GetEntityName(string content)

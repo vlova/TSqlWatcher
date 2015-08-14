@@ -106,7 +106,7 @@ namespace TSqlWatcher
 						return; // short circuit return to prevent fake updates
 					}
 
-					var entity = SqlEntity.Create(path, content);
+					var entity = SqlEntity.Create(path, content, settings);
 					if (oldEntity.Maybe(e => e.Name) != entity.Name)
 					{
 						actions.Add(new DropCommand(entity));

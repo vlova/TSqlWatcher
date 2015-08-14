@@ -16,7 +16,7 @@ namespace TSqlWatcher
 			{
 				buffer.Add(item);
 				index++;
-				if (index == count)
+				if (index % count == 0)
 				{
 					yield return buffer;
 					buffer = new List<T>();

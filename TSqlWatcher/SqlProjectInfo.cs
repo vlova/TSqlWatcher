@@ -23,17 +23,17 @@ namespace TSqlWatcher
 		public static SqlProjectInfo Create(Settings settings)
 		{
 			var project = new SqlProjectInfo();
-			project.FileToEntityMapping = GetFileToEntityMapping(settings.Path);
+			project.FileToEntityMapping = GetFileToEntityMapping(settings);
 			project.DependentEntities = GetDependentEntities(project.FileToEntityMapping);
 			return project;
 		}
 
-		private static Dictionary<string, SqlEntity> GetFileToEntityMapping(string path)
+		private static Dictionary<string, SqlEntity> GetFileToEntityMapping(Settings settings)
 		{
 			return Directory
-				.EnumerateFiles(path, "*.sql", SearchOption.AllDirectories)
+				.EnumerateFiles(settings.Path, "*.sql", SearchOption.AllDirectories)
 				.Select(filePath => new { path = filePath, content = GetContent(filePath) })
-				.Select(e => SqlEntity.Create(e.path, e.content))
+				.Select(e => SqlEntity.Create(e.path, e.content, settings))
 				.Where(e => e.Type != SqlEntityType.Unknown)
 				.ToDictionary(e => e.Path, e => e);
 		}

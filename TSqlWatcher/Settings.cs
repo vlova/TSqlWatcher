@@ -25,8 +25,13 @@ namespace TSqlWatcher
 			}
 
 			this.ConnectionString = settings.TryGet("ConnectionString") ?? string.Empty;
+			this.UserVariables = settings
+				.Where(p => p.Key.StartsWith("$"))
+				.ToDictionary(p => p.Key.Substring(1), p => p.Value);
     	}
-    
+
+		public Dictionary<string, string> UserVariables { get; set; }
+
     	public string Path { get; set; }
     
     	public List<string> Errors { get; private set; }
