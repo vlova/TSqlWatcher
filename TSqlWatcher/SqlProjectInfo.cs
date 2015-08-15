@@ -1,13 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
 
 namespace TSqlWatcher
 {
+
 	internal class SqlProjectInfo
 	{
 		/// <summary>
@@ -22,38 +21,92 @@ namespace TSqlWatcher
 
 		public static SqlProjectInfo Create(Settings settings)
 		{
-			var project = new SqlProjectInfo();
-			project.FileToEntityMapping = GetFileToEntityMapping(settings);
-			project.DependentEntities = GetDependentEntities(project.FileToEntityMapping);
-			return project;
+			using (Profiling.Profile())
+			{
+				var project = new SqlProjectInfo();
+				project.FileToEntityMapping = Profiling.Profile("GetFileToEntityMapping", () => GetFileToEntityMapping(settings));
+				project.DependentEntities = Profiling.Profile("GetDependentEntities", () => GetDependentEntities(project.FileToEntityMapping));
+				//project.VerifyNoCycles();
+				//project.PrintCommonWords();
+				return project;
+			}
 		}
+
+		#region developer usage area
+
+		private void PrintCommonWords()
+		{
+			var groupedWords = FileToEntityMapping.Values
+				.SelectMany(v => v.Words)
+				.GroupBy(v => v, StringComparer.InvariantCultureIgnoreCase)
+				.OrderBy(g => g.Count()).ToList();
+
+			Console.WriteLine("common words: \n{0}", 
+				string.Join(
+					"\n", 
+					groupedWords
+						.Select(v => string.Format("{0} {1}", v.Key, v.Count()))
+						.Take(100)));
+		}
+
+		private SqlEntity GetByName(string name)
+		{
+			return FileToEntityMapping.Values.FirstOrDefault(e => e.Name == name);
+		}
+
+		private void VerifyNoCycles()
+		{
+			foreach (var name in DependentEntities.Keys)
+			{
+				VerifyNoCycles(name, new HashSet<string>());
+			}
+		}
+
+		private void VerifyNoCycles(string name, HashSet<string> parents)
+		{
+			if (parents.Contains(name)) {
+				Console.WriteLine("Cycle is here {0} {1}", parents.Count, string.Join("; ", parents));
+				return;
+			}
+
+			parents.Add(name);
+			var dependants = DependentEntities.TryGet(name).EmptyIfNull();
+			foreach (var entity in dependants)
+			{
+				VerifyNoCycles(entity.Name, new HashSet<string>(parents));
+			}
+		}
+
+		#endregion
 
 		private static Dictionary<string, SqlEntity> GetFileToEntityMapping(Settings settings)
 		{
 			return Directory
 				.EnumerateFiles(settings.Path, "*.sql", SearchOption.AllDirectories)
+				.AsParallel().WithDegreeOfParallelism(4).WithExecutionMode(ParallelExecutionMode.ForceParallelism)
 				.Select(filePath => new { path = filePath, content = GetContent(filePath) })
 				.Select(e => SqlEntity.Create(e.path, e.content, settings))
 				.Where(e => e.Type != SqlEntityType.Unknown)
+				.AsSequential()
 				.ToDictionary(e => e.Path, e => e);
 		}
 
 		private static Dictionary<string, List<SqlEntity>> GetDependentEntities(Dictionary<string, SqlEntity> fileToEntityMapping)
 		{
-			var entityNames = fileToEntityMapping.Select(p => p.Value.Name).ToList();
+			var entityNames = new HashSet<string>(fileToEntityMapping.Select(p => p.Value.Name));
 
-			return entityNames
-				.Select(name => new
+			var nameToEntity = fileToEntityMapping.Values.ToDictionary(s => s.Name, StringComparer.InvariantCultureIgnoreCase);
+
+			return fileToEntityMapping.Values
+				.Select(entity => new
 				{
-					name,
-					dependent = fileToEntityMapping
-						.Select(_ => _.Value)
-						.Where(e => e.Name != name)
-						.Where(e => e.Words.Contains(name))
-						.ToList()
+					dependsOn = entityNames.Intersect(entity.Words),
+					name = entity.Name
 				})
-				.Where(d => d.dependent.Any())
-				.ToDictionary(d => d.name, d => d.dependent);
+				.SelectMany(relation => relation.dependsOn.Select(who => new { dependent = relation.name, name = who }))
+				.Where(r => !string.Equals(r.name, r.dependent, StringComparison.InvariantCultureIgnoreCase))
+				.GroupBy(r => r.name, StringComparer.InvariantCultureIgnoreCase)
+				.ToDictionary(g => g.Key, g => g.Select(i => nameToEntity[i.dependent]).ToList());
 		}
 
 		public static string GetContent(string path)

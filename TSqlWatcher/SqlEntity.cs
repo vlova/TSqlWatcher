@@ -1,6 +1,6 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace TSqlWatcher
@@ -25,9 +25,24 @@ namespace TSqlWatcher
 			{
 				_content = value;
 				Words = new HashSet<string>(
-					Content.Split('[', ']', '\r', '\n', '\t', ' ', '.'), 
+					Content
+						.Split('\n','\r')
+						.Select(s => RemoveComment(s))
+						.SelectMany(s => s.Split(Constants.Delimiters))
+						.Except(Constants.CommonWords)
+						.Where(s => !string.IsNullOrWhiteSpace(s))
+						.Where(s => !s.All(char.IsDigit)) // remove integers
+						.Where(s => !s.StartsWith("@")), // remove variables, 
 					StringComparer.InvariantCultureIgnoreCase);
 			}
+		}
+
+		private string RemoveComment(string s)
+		{
+			// TODO: handle /* */ multiline comments
+			var index = s.IndexOf("--");
+			if (index == -1) return s;
+			return s.Substring(0, index);
 		}
 
 		public string Path { get; set; }
