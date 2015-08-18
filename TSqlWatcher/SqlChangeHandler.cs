@@ -29,6 +29,8 @@ namespace TSqlWatcher
 			var watch = Stopwatch.StartNew();
 			project = SqlProjectInfo.Create(settings);
 
+			UndefinedVariableAnalyzer.Anaylyze(project);
+
 			Logger.Log("finished analyzing project for {0}", watch.Elapsed);
 			Console.WriteLine();
 			Console.WriteLine();

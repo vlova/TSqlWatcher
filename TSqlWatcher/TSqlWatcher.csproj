@@ -44,6 +44,7 @@
     <Compile Include="Constants.cs" />
     <Compile Include="CreateCommand.cs" />
     <Compile Include="DropCommand.cs" />
+    <Compile Include="Formatter.cs" />
     <Compile Include="ICommand.cs" />
     <Compile Include="LambdaCommand.cs" />
     <Compile Include="Logger.cs" />
@@ -56,6 +57,7 @@
     <Compile Include="Settings.cs" />
     <Compile Include="SqlChangeHandler.cs" />
     <Compile Include="SqlProjectInfo.cs" />
+    <Compile Include="UndefinedVariableAnalyzer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
