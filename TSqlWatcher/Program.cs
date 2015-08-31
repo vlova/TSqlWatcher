@@ -75,20 +75,21 @@ namespace TSqlWatcher
 			FileSystemEventHandler handler,
 			RenamedEventHandler renamedHandler)
 		{
-			var watcher = new FileSystemWatcher(settings.Path);
+			var watcher = new FileSystemWatcher(settings.Path)
+			{
+				IncludeSubdirectories = true,
+				NotifyFilter = NotifyFilters.DirectoryName
+				               | NotifyFilters.FileName
+				               | NotifyFilters.LastWrite,
+				EnableRaisingEvents = true,
+				Filter = "*.sql"
+			};
 
-			watcher.IncludeSubdirectories = true;
-			watcher.NotifyFilter =
-				NotifyFilters.DirectoryName
-				| NotifyFilters.FileName
-				| NotifyFilters.LastWrite;
 
-			watcher.Filter = "*.sql";
 			watcher.Changed += handler;
 			watcher.Created += handler;
 			watcher.Deleted += handler;
 			watcher.Renamed += renamedHandler;
-			watcher.EnableRaisingEvents = true;
 		}
 
 	}

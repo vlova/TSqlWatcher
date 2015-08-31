@@ -27,7 +27,7 @@ namespace TSqlWatcher
 				Words = new HashSet<string>(
 					Content
 						.Split('\n','\r')
-						.Select(s => RemoveComment(s))
+						.Select(RemoveComment)
 						.SelectMany(s => s.Split(Constants.Delimiters))
 						.Except(Constants.CommonWords)
 						.Where(s => !string.IsNullOrWhiteSpace(s))
@@ -40,7 +40,7 @@ namespace TSqlWatcher
 		private string RemoveComment(string s)
 		{
 			// TODO: handle /* */ multiline comments
-			var index = s.IndexOf("--");
+			var index = s.IndexOf("--", StringComparison.Ordinal);
 			if (index == -1) return s;
 			return s.Substring(0, index);
 		}
@@ -71,10 +71,10 @@ namespace TSqlWatcher
 			return Name.GetHashCode() | Path.GetHashCode();
 		}
 
-		private static Regex functionRegex = GetEntityRegex("function");
-		private static Regex storedProcedureRegex = GetEntityRegex(@"(?:procedure|proc)");
-		private static Regex viewRegex = GetEntityRegex("view");
-		private static Regex customTypeRegex = GetEntityRegex("type");
+		private static readonly Regex functionRegex = GetEntityRegex("function");
+		private static readonly Regex storedProcedureRegex = GetEntityRegex(@"(?:procedure|proc)");
+		private static readonly Regex viewRegex = GetEntityRegex("view");
+		private static readonly Regex customTypeRegex = GetEntityRegex("type");
 
 		private static Regex GetEntityRegex(string type)
 		{

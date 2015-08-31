@@ -12,7 +12,7 @@ namespace TSqlWatcher
 	{
 		private readonly Settings settings;
 
-		private object locker = new object();
+		private readonly object locker = new object();
 		private SqlConnection connection;
 		private SqlTransaction transaction;
 		private SqlProjectInfo project;

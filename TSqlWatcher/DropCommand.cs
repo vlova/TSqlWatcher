@@ -57,7 +57,6 @@ namespace TSqlWatcher
 
 			foreach (var pair in project.DependentEntities.ToList())
 			{
-				var keyName = pair.Key;
 				var coll = pair.Value;
 
 				if (coll.Contains(Entity))

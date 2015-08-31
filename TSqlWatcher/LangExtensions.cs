@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 
 namespace TSqlWatcher
@@ -29,7 +28,7 @@ namespace TSqlWatcher
 			}
 		}
 
-		private static CultureInfo enCulture = new CultureInfo("en-US");
+		private static readonly CultureInfo enCulture = new CultureInfo("en-US");
 		private const int NotFound = -1;
 
 		public static bool ContainsSql(this string @in, string what)
@@ -115,9 +114,7 @@ namespace TSqlWatcher
 
 		public static IEnumerable<T> EmptyIfNull<T>(this IEnumerable<T> list)
 		{
-			return (list == null)
-				? Enumerable.Empty<T>()
-				: list;
+			return list ?? Enumerable.Empty<T>();
 		}
 
 		public static IEnumerable<T> DistinctSameOrder<T>(this IEnumerable<T> collection)

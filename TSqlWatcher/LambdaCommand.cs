@@ -1,7 +1,5 @@
 using System;
-using System.Linq;
 using System.Data.SqlClient;
-using System.Collections.Generic;
 
 namespace TSqlWatcher
 {

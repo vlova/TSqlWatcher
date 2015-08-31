@@ -9,7 +9,6 @@ namespace TSqlWatcher
     {
     	public Settings(string[] args)
     		: this(args
-    			.OfType<string>()
     			.IntoGroups(count: 2)
     			.ToDictionary(p => p[0].TrimStart('-', ' '), p => p[1], StringComparer.InvariantCultureIgnoreCase))
     	{ 

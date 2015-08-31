@@ -6,7 +6,7 @@ namespace TSqlWatcher
 {
     internal class UndefinedVariableAnalyzer
     {
-    	private static Regex VariableRegex = new Regex(@"\$\((.*?)\)", RegexOptions.Compiled);
+    	private static readonly Regex VariableRegex = new Regex(@"\$\((.*?)\)", RegexOptions.Compiled);
     
     
     	internal static void Anaylyze(SqlProjectInfo projectInfo)
@@ -52,8 +52,7 @@ namespace TSqlWatcher
     
     				var badLine = lines
     					.Select((line, index) => new { text = line, index })
-    					.Where(_ => VariableRegex.IsMatch(_.text))
-    					.First();
+    					.First(_ => VariableRegex.IsMatch(_.text));
     
     				Formatter.WriteLine("\tin file ^[DarkYellow]{0}^[Gray] (entity {1}) at line {2}:",
     					entity.Path,

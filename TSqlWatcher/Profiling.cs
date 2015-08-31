@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
@@ -12,8 +13,8 @@ namespace TSqlWatcher
     {
     	private class WatchData : IDisposable
     	{
-    		public Stopwatch Watch { get; set; }
-    		public string Description { get; set; }
+    		public Stopwatch Watch { private get; set; }
+    		public string Description { private get; set; }
     
     		[DebuggerStepperBoundary]
     		public WatchData()
@@ -50,7 +51,7 @@ namespace TSqlWatcher
     		return Profile(description, new object[0]);
     	}
     
-    	[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope"), DebuggerStepperBoundary]
+    	[SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope"), DebuggerStepperBoundary]
     	public static IDisposable Profile(string description, params object[] args)
     	{
     		description = args.Any() ? string.Format(description, args) : description;
@@ -63,7 +64,7 @@ namespace TSqlWatcher
     		};
     	}
     
-    	[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope"), DebuggerStepperBoundary]
+    	[SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope"), DebuggerStepperBoundary]
     	public static IDisposable ProfileExecOnly(string description, params object[] args)
     	{
     		description = args.Any() ? string.Format(description, args) : description;
