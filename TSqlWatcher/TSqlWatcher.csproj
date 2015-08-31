@@ -46,9 +46,11 @@
     <Compile Include="DropCommand.cs" />
     <Compile Include="Formatter.cs" />
     <Compile Include="ICommand.cs" />
+    <Compile Include="ISqlChangeHandler.cs" />
     <Compile Include="LambdaCommand.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="Profiling.cs" />
+    <Compile Include="QueuedSqlChangeHandlerDecorator.cs" />
     <Compile Include="SqlEntity.cs" />
     <Compile Include="SqlEntityType.cs" />
     <Compile Include="LangExtensions.cs" />

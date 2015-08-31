@@ -46,7 +46,7 @@ namespace TSqlWatcher
 			}
 
 
-			var handler = new SqlChangeHandler(settings);
+			var handler = new QueuedSqlChangeHandlerDecorator(new SqlChangeHandler(settings));
 			handler.Prepare();
 
 			CreateWatcher(settings,

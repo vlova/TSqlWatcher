@@ -19,6 +19,7 @@ namespace TSqlWatcher
 			var criticalError = false;
 			try
 			{
+
 				using (var command = transaction.Connection.CreateCommand())
 				{
 					command.CommandText = Entity.Content;
@@ -31,6 +32,7 @@ namespace TSqlWatcher
 			catch (Exception ex)
 			{
 				criticalError = true;
+				Logger.Log("failed while trying to create {0}", Entity);
 				Logger.Log(ex);
 				transaction.Rollback();
 			}

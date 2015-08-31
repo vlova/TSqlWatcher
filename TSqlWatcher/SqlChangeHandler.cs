@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.SqlClient;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading;
 
 namespace TSqlWatcher
 {
-	internal class SqlChangeHandler
+	internal class SqlChangeHandler : ISqlChangeHandler
 	{
 		private readonly Settings settings;
 
@@ -60,7 +60,7 @@ namespace TSqlWatcher
 						}
 
 
-						if (connection.State == System.Data.ConnectionState.Open)
+						if (connection.State == ConnectionState.Open)
 						{
 							connection.Close();
 						}
